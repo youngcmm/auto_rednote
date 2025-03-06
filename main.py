@@ -1,5 +1,3 @@
-import schedule
-import time
 from datetime import datetime
 from zhihu_crawler import fetch_zhihu_hot, fetch_zhihu_hot_answer_by_jina
 # from xhs_poster import XHSPoster
@@ -7,15 +5,40 @@ from xiaohongshu_publisher import XiaohongshuPublisher
 from config import DEEPSEEK_CONFIG  # 简化配置导入
 import config
 from openai import OpenAI
-import utils
-import txt2img
+import weibo_crawler
+import imgrender 
 client = OpenAI(
     api_key=DEEPSEEK_CONFIG["api_key"],
     base_url=DEEPSEEK_CONFIG["base_url"]
 )
-
 import json
 import re
+from apscheduler.schedulers.blocking import BlockingScheduler
+from apscheduler.triggers.cron import CronTrigger
+import random
+from datetime import datetime, timedelta
+import browser
+scheduler = BlockingScheduler(timezone="Asia/Shanghai")  # 设置时区
+
+def schedule_random_job(hour):
+    # 生成0到15分钟的随机延迟（单位：秒）
+    delay = random.randint(0, 3 * 60)
+    run_time = datetime.now() + timedelta(seconds=delay)
+    scheduler.add_job(job, 'date', run_date=run_time)
+    print(f"任务将在 {run_time.strftime('%H:%M:%S')} 执行")
+
+def check_initial_schedule():
+    now = datetime.now()
+    # 检查中午时间段
+    if 12 <= now.hour < 12 and 0 <= now.minute < 3:
+        remaining = (datetime(now.year, now.month, now.day, 12, 3) - now).total_seconds()
+        delay = random.uniform(0, remaining)
+        scheduler.add_job(job, 'date', run_date=now + timedelta(seconds=delay))
+    # 检查下午时间段
+    if 18 <= now.hour < 18 and 0 <= now.minute < 3:
+        remaining = (datetime(now.year, now.month, now.day, 18, 3) - now).total_seconds()
+        delay = random.uniform(0, remaining)
+        scheduler.add_job(job, 'date', run_date=now + timedelta(seconds=delay))
 
 def get_last_line(s):
     lines = s.splitlines()
@@ -113,25 +136,26 @@ def generate_content(question, answer_txt, template_key="rednote"):
         return None
 
 def job():
-    # poster = XHSPoster()
-    # if not poster.in_schedule_time():
-    #     print("当前不在计划发布时间段")
-    #     return
-    
-    # 获取知乎热榜
-    hot_questions = fetch_zhihu_hot()
-    if not hot_questions:
-        print("未获取到热榜数据")
-        return
 
-    # 获取当前热榜问题
-    question = hot_questions[0]
-    
-    # 使用jina获取高赞回答
-    answer_txt = fetch_zhihu_hot_answer_by_jina(question['url'])
-    if not answer_txt:
-        print("获取回答内容失败")
-        return
+    # # 获取知乎热榜
+    # hot_questions = fetch_zhihu_hot()
+    # if not hot_questions:
+    #     print("未获取到热榜数据")
+    #     return
+    # # 获取当前热榜问题
+    # question = hot_questions[0]
+    # # 使用jina获取高赞回答
+    # answer_txt = fetch_zhihu_hot_answer_by_jina(question['url'])
+    # if not answer_txt:
+    #     print("获取回答内容失败")
+    #     return
+
+    #爬取微博内容
+    driver = browser.Browser()
+    browser_instance = driver.start_browser()
+    crawler = weibo_crawler.WeiboCrawler(driver=browser_instance)
+    answer_txt, question = crawler.do()
+    browser_instance.close()
 
     # 第一步提炼观点
     template_key = "controversy_extract"
@@ -187,16 +211,32 @@ def job():
     print(title)
 
     #第四步根据tile生成封面图片
-    txt2img.paint_dance(desc=title, img_name='title')
+    # txt2img.paint_dance(desc=title, img_name='title')
+    imgrender_instance = imgrender.ImgReder(txt=question['title'])
+    imgrender_instance.do()
     
     # 小红书发布
-    xiaohongshu_publisher = XiaohongshuPublisher(cookie_file='cookies.pkl', image_path='/Users/ycm/Desktop/code/auto/title.png', title=title, content=content, topics_list = last_line)
+    driver = browser.Browser()
+    driver = driver.start_browser()
+    xiaohongshu_publisher = XiaohongshuPublisher(cookie_file='cookies.pkl', image_path='/Users/ycm/Desktop/code/auto/title.png', title=title, content=content, topics_list = last_line, driver=driver)
     xiaohongshu_publisher.publish(url=config.PUBLISH_URL)
 
+
+# 程序启动时检查是否需要立即执行
+check_initial_schedule()
+# 添加定时任务（每天12:00和18:00触发）
+scheduler.add_job(
+    lambda: schedule_random_job(12),
+    CronTrigger(hour=12, minute=0, timezone="Asia/Shanghai")
+)
+scheduler.add_job(
+    lambda: schedule_random_job(18),
+    CronTrigger(hour=18, minute=0, timezone="Asia/Shanghai")
+)
+
 if __name__ == "__main__":
-    # utils.init_db()
-    # print("程序启动，等待执行计划...")
-    # while True:
-        # schedule.run_pending()
-        # time.sleep(1)
-    job()
+    try:
+        scheduler.start()
+    except (KeyboardInterrupt, SystemExit):
+        pass
+    # job()

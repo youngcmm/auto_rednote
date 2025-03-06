@@ -1,8 +1,5 @@
-import sqlite3
 from config import DATABASE_PATH
-import hashlib
-import jieba
-import jieba.analyse
+
 
 def _convert_text_to_html(text):
     """ 将纯文本转换为基本HTML格式
@@ -24,3 +21,4 @@ def _convert_text_to_html(text):
 
 # txt = _convert_text_to_html(text='🔥董明珠押上全部声誉做健康家？网友吵翻天！这波操作你看懂了吗？\n 🔥董明珠押上全部声誉做健康家？网友吵翻天！这波操作你看懂了吗？')
 # print(txt)
+

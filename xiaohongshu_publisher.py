@@ -1,31 +1,22 @@
-from selenium import webdriver
+# from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.chrome.options import Options
+# from selenium.webdriver.common.keys import Keys
+# from selenium.webdriver.chrome.options import Options
 import time
 import pickle
 import utils
 
 class XiaohongshuPublisher:
-    def __init__(self, cookie_file="cookies.pkl", image_path=None, title="hello this is my first blog", content="I am a new one here, hello everybody!", topics_list = None):
-        # 设置浏览器选项
-        self.options = Options()
-        # self.options.add_argument('--headless')  # 无头模式（后台运行）
-        self.options.add_argument('--disable-gpu')  # 禁用 GPU 加速
-        self.options.add_argument('--no-sandbox')  # 避免沙盒问题
-
-        # 启动 WebDriver
-        self.driver = webdriver.Chrome(options=self.options)
-
-        # 加载Cookies文件路径
-        self.cookie_file = cookie_file
+    def __init__(self, cookie_file="cookies.pkl", image_path=None, title="hello this is my first blog", content="I am a new one here, hello everybody!", topics_list = None, driver = None):
+        self.driver = driver
+        self.cookie_file = cookie_file # 加载Cookies文件路径
         self.image_path = image_path
         self.title = title
         self.content = content
         self.topics_list = topics_list 
 
     def load_cookies(self):
-        # 加载之前保存的 Cookies
+        # 加载之前保存的 小红书Cookies
         cookies = pickle.load(open(self.cookie_file, "rb"))
         for cookie in cookies:
             self.driver.add_cookie(cookie)
