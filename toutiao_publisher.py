@@ -8,7 +8,8 @@ from selenium.common.exceptions import TimeoutException, ElementNotInteractableE
 from selenium.webdriver.common.keys import Keys
 import browser
 import utils.util
-class toutiao_publisher():
+
+class TouTiaoPublisher():
     def __init__(self, cookie_file="cookies_toutiao.pkl", image_path=None, title="hello this is my first blog", content="I am a new one here, hello everybody!", topics_list = None, driver = None):
         self.driver = driver
         self.cookie_file = cookie_file # 加载Cookies文件路径
@@ -52,7 +53,7 @@ class toutiao_publisher():
         #     textarea     # 定位到的 textarea 元素
         # )
         # 等待元素可交互并定位
-        title_textarea = WebDriverWait(driver, 10).until(
+        title_textarea = WebDriverWait(self.driver, 10).until(
             EC.element_to_be_clickable(
                 (By.CSS_SELECTOR, 'textarea[placeholder="请输入文章标题（2～30个字）"]')
             )
@@ -135,7 +136,7 @@ class toutiao_publisher():
     def select_cover(self):
         try:
             # === 第一步：点击封面添加按钮 ===
-            cover_trigger = WebDriverWait(driver, 15).until(
+            cover_trigger = WebDriverWait(self.driver, 15).until(
                 EC.element_to_be_clickable(
                     (By.CSS_SELECTOR, "div.byte-spin-container div.article-cover-add")
                 )
@@ -165,7 +166,7 @@ class toutiao_publisher():
             print(f"已输入关键词：{self.topics_list[0]}")
 
             # === 新增第四步：点击搜索按钮 ===
-            search_btn = WebDriverWait(driver, 10).until(
+            search_btn = WebDriverWait(self.driver, 10).until(
                 EC.element_to_be_clickable(
                     (By.CSS_SELECTOR, "span.btn-search")  # 根据实际结构可能需要调整选择器
                 )
@@ -174,7 +175,7 @@ class toutiao_publisher():
             try:
                 search_btn.click()
             except:
-                driver.execute_script("arguments[0].click();", search_btn)
+                self.driver.execute_script("arguments[0].click();", search_btn)
             print("已触发搜索操作")
 
             # === 第四步：选择第一个图片项 ===
@@ -194,7 +195,7 @@ class toutiao_publisher():
             )
             time.sleep(5)
             # 滚动到可视区域（处理懒加载）
-            driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", first_image)
+            self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", first_image)
             # 添加点击容错机制
             for _ in range(3):
                 try:
@@ -206,7 +207,7 @@ class toutiao_publisher():
 
             #第五步点击确定按钮
                 # 等待 `确定` 按钮，并根据文本内容查找
-            confirm_button = WebDriverWait(driver, 10).until(
+            confirm_button = WebDriverWait(self.driver, 10).until(
                 EC.element_to_be_clickable(
                     (By.XPATH, "//button[contains(@class, 'byte-btn-primary') and span[text()='确定']]")
                 )
@@ -218,7 +219,7 @@ class toutiao_publisher():
             print("2. 元素定位器失效")
             print("3. 网络延迟异常")
             # 打印当前页面结构辅助调试
-            print("当前页面HTML摘要：", driver.page_source[:1000])
+            print("当前页面HTML摘要：", self.driver.page_source[:1000])
             
         finally:
             # 建议保持浏览器打开用于调试
@@ -226,12 +227,12 @@ class toutiao_publisher():
     def click_the_AI_close_button(self):
         try:
             # 等待 `close-btn` 按钮出现
-            close_button = WebDriverWait(driver, 5).until(
+            close_button = WebDriverWait(self.driver, 5).until(
                 EC.presence_of_element_located((By.CLASS_NAME, "close-btn"))
             )
             
             # 确保按钮可点击
-            WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.CLASS_NAME, "close-btn")))
+            WebDriverWait(self.driver, 5).until(EC.element_to_be_clickable((By.CLASS_NAME, "close-btn")))
             
             # 点击按钮
             close_button.click()
@@ -244,7 +245,7 @@ if __name__ == "__main__":
     brow_instance = browser.Browser()
     driver = brow_instance.start_browser()
 
-    toutiao_publish = toutiao_publisher(cookie_file="cookies_toutiao.pkl", 
+    toutiao_publish = TouTiaoPublisher(cookie_file="cookies_toutiao.pkl", 
                                  image_path=None, 
                                  title="46岁女教师炒股16年盈利113万！5%就卖的笨方法真能稳赚不赔？", 
                                  content="I am a new one here, hello everybody!/nI am a new one here, hello everybody!/nI am a new one here, hello everybody!", 
