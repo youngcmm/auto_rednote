@@ -5,6 +5,8 @@ from selenium.webdriver.chrome.options import Options
 import time
 import json
 import requests
+import browser
+import utils.util
 class WeiboCrawler:
     def __init__(self, driver):
         self.content_url = None
@@ -41,9 +43,9 @@ class WeiboCrawler:
         app_div = self.driver.find_element(By.ID, "app")
         weibo_content = app_div.get_attribute("outerHTML")
         # 将内容保存到文件
-        with open("weibo_app_content.txt", "w", encoding="utf-8") as file:
-            file.write(weibo_content)
-        print("数据已保存到 weibo_app_content.txt")
+        # with open("weibo_app_content.txt", "w", encoding="utf-8") as file:
+            # file.write(weibo_content)
+        # print("数据已保存到 weibo_app_content.txt")
         return weibo_content
 
 
@@ -61,3 +63,21 @@ class WeiboCrawler:
         cards = self.get_hot_list()
         weibo_conten = self.crawl(content_url=cards[0]['scheme'])
         return weibo_conten, {'title':cards[0]['desc']} #这里转为字典格式，和后面的生成相对应
+
+# #爬取微博内容
+# answer_txt_list = []
+# question_list = []
+# driver = browser.Browser()
+# browser_instance = driver.start_browser()
+# crawler = WeiboCrawler(driver=browser_instance)
+# # answer_txt, question = crawler.do()
+# hot_list = crawler.get_hot_list()
+# for i in range(2): #爬取执行两次
+#     answer_txt = crawler.fetch_content(content_url=hot_list[i]['scheme'])
+#     question = {'title':hot_list[i]['desc']}
+#     answer_txt_list.append(answer_txt)
+#     question_list.append(question)
+#     ext_comments = utils.util.extract_weibo_comments(html_str=answer_txt)
+#     print('\r\n'.join(ext_comments))
+#     print(question)
+# browser_instance.close()

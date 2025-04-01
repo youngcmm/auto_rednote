@@ -4,7 +4,9 @@ from selenium.webdriver.common.by import By
 # from selenium.webdriver.chrome.options import Options
 import time
 import pickle
+import browser
 import utils
+import utils.util
 
 class XiaohongshuPublisher:
     def __init__(self, cookie_file="cookies.pkl", image_path=None, title="hello this is my first blog", content="I am a new one here, hello everybody!", topics_list = None, driver = None):
@@ -53,15 +55,8 @@ class XiaohongshuPublisher:
     )
 
     def fill_content(self):
-        # # 5. 填入内容
-        # content_input = self.driver.find_element(By.ID, "quillEditor").find_element(By.CLASS_NAME, "ql-editor")
-        # # 点击编辑区域聚焦
-        # content_input.click()
-        # # 输入内容
-        # content_input.send_keys(self.content)
-
         # 5. 填入内容（JavaScript方案）
-        html_content = utils._convert_text_to_html(self.content) #str转为html
+        html_content = utils.util.convert_text_to_html(self.content) #str转为html
         editor = self.driver.find_element(By.ID, "quillEditor").find_element(By.CLASS_NAME, "ql-editor")
         # 通过JavaScript设置富文本HTML内容
         self.driver.execute_script(
@@ -78,66 +73,69 @@ class XiaohongshuPublisher:
         time.sleep(10)  # 等待内容填充
 
     def activate_topics(self):
-        editor = self.driver.find_element(By.CLASS_NAME, 'ql-editor')
-        
-        for topic in self.topics_list:
-            # 确保话题带#号
-            search_text = f"#{topic.strip()}"
+        try: #没有话题就跳过
+            editor = self.driver.find_element(By.CLASS_NAME, 'ql-editor')
             
-            # 通过XPath定位精确的文本节点
-            topic_element = self.driver.find_element(
-                By.XPATH, f"//*[contains(@class,'ql-editor')]//text()[contains(., '{search_text}')]/parent::*"
-            )
-            
-            # 执行核心操作
-            self.driver.execute_script("""
-                const [element, topicText] = arguments;
+            for topic in self.topics_list:
+                # 确保话题带#号
+                search_text = f"#{topic.strip()}"
                 
-                // 1. 定位精确的文本节点
-                const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
-                let targetNode = null;
+                # 通过XPath定位精确的文本节点
+                topic_element = self.driver.find_element(
+                    By.XPATH, f"//*[contains(@class,'ql-editor')]//text()[contains(., '{search_text}')]/parent::*"
+                )
                 
-                while(walker.nextNode()) {
-                    if(walker.currentNode.textContent.includes(topicText)) {
-                        targetNode = walker.currentNode;
-                        break;
+                # 执行核心操作
+                self.driver.execute_script("""
+                    const [element, topicText] = arguments;
+                    
+                    // 1. 定位精确的文本节点
+                    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+                    let targetNode = null;
+                    
+                    while(walker.nextNode()) {
+                        if(walker.currentNode.textContent.includes(topicText)) {
+                            targetNode = walker.currentNode;
+                            break;
+                        }
                     }
-                }
+                    
+                    if(!targetNode) return;
+                    
+                    // 2. 设置光标位置
+                    const range = document.createRange();
+                    const offset = targetNode.textContent.indexOf(topicText) + topicText.length;
+                    range.setStart(targetNode, offset);
+                    range.setEnd(targetNode, offset);
+                    
+                    const sel = window.getSelection();
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                    
+                    // 3. 模拟用户交互
+                    element.dispatchEvent(new MouseEvent('click', {
+                        bubbles: true,
+                        cancelable: true,
+                        view: window
+                    }));
+                    
+                    // 4. 添加7秒延迟后再触发回车
+                    setTimeout(() => {
+                        const enterEvent = new KeyboardEvent('keydown', {
+                            key: 'Enter',
+                            code: 'Enter',
+                            keyCode: 13,
+                            bubbles: true
+                        });
+                        element.dispatchEvent(enterEvent);
+                    }, 9000); 
+                    // 5. 强制布局更新
+                    element.scrollIntoView({behavior: 'auto', block: 'center'});
+                """, topic_element, search_text)
                 
-                if(!targetNode) return;
-                
-                // 2. 设置光标位置
-                const range = document.createRange();
-                const offset = targetNode.textContent.indexOf(topicText) + topicText.length;
-                range.setStart(targetNode, offset);
-                range.setEnd(targetNode, offset);
-                
-                const sel = window.getSelection();
-                sel.removeAllRanges();
-                sel.addRange(range);
-                
-                // 3. 模拟用户交互
-                element.dispatchEvent(new MouseEvent('click', {
-                    bubbles: true,
-                    cancelable: true,
-                    view: window
-                }));
-                
-                // 4. 添加5秒延迟后再触发回车
-                setTimeout(() => {
-                    const enterEvent = new KeyboardEvent('keydown', {
-                        key: 'Enter',
-                        code: 'Enter',
-                        keyCode: 13,
-                        bubbles: true
-                    });
-                    element.dispatchEvent(enterEvent);
-                }, 5000); 
-                // 5. 强制布局更新
-                element.scrollIntoView({behavior: 'auto', block: 'center'});
-            """, topic_element, search_text)
-            
-            time.sleep(5)  # 操作间隔
+                time.sleep(5)  # 操作间隔
+        except:
+            pass
 
     def click_publish_button(self):
         # 7. 点击发布按钮
@@ -147,7 +145,7 @@ class XiaohongshuPublisher:
 
     def close_browser(self):
         # 关闭浏览器
-        self.driver.quit()
+        self.driver.close()
 
     def publish(self, url):
         # 执行整个发布流程
@@ -163,5 +161,7 @@ class XiaohongshuPublisher:
 
 # 使用类发布
 if __name__ == "__main__":
-    publisher = XiaohongshuPublisher(cookie_file='cookies.pkl', image_path="/Users/ycm/Desktop/图片_硕士毕业论文_dcgc/QX-Trachea_convergencen.png", title='🔥董明珠押上全部声誉做健康家？网友吵翻天！这波操作你看懂了吗？', content='🔥董明珠押上全部声誉做健康家？网友吵翻天！这波操作你看懂了吗？\n 🔥董明珠押上全部声誉做健康家？网友吵翻天！这波操作你看懂了吗？')
+    driver = browser.Browser()
+    driver = driver.start_browser()
+    publisher = XiaohongshuPublisher(cookie_file='cookies.pkl', image_path="/Users/ycm/Desktop/图片_硕士毕业论文_dcgc/QX-Trachea_convergencen.png", title='🔥董明珠押上全部声誉做健康家？网友吵翻天！这波操作你看懂了吗？', content='🔥董明珠押上全部声誉做健康家？网友吵翻天！这波操作你看懂了吗？\n 🔥董明珠押上全部声誉做健康家？网友吵翻天！这波操作你看懂了吗？', driver=driver)
     publisher.publish(url="https://creator.xiaohongshu.com/publish/publish?source=official")

@@ -74,6 +74,7 @@ def job():
             return
         # 使用示例
         status, result = extract_json_from_response(controversy_content)
+        
        # 存储观点的结果
         output_path = f"output_files/{time_ymd}/{question}/controversy.txt"
         directory = os.path.dirname(output_path)

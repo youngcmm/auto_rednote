@@ -1,2 +1,6 @@
 config.py
 cookies.pkl
+cookies_toutiao.pkl
+output_files/*
+prompts/*
+pen.png
